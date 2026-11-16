@@ -4138,6 +4138,7 @@ sub load_graph_definitions {
        ],
 # mbr-2Nov20 radsniff END
     };
+    $GraphDefs->{'smart_temperature'} = $GraphDefs->{'temperature'};
     $GraphDefs->{'if_multicast'}        = $GraphDefs->{'ipt_packets'};
     $GraphDefs->{'if_tx_errors'}        = $GraphDefs->{'if_rx_errors'};
     #$GraphDefs->{'dns_rcode'}           = $GraphDefs->{'dns_opcode'};

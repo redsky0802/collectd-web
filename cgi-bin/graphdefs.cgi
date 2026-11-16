@@ -1629,4 +1629,5 @@ sub load_graph_definitions
         ],
 
     };
+    $GraphDefs->{'smart_temperature'} = $GraphDefs->{'temperature'};
 } # load_graph_definitions
