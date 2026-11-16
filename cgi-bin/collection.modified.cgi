@@ -4340,6 +4340,10 @@ sub meta_graph_generic_stack {
             qq#DEF:${vname}_avg=$file:value:AVERAGE#,
             qq#DEF:${vname}_max=$file:value:MAX#,
         );
+        if ( $opts->{'normalize_to_percent'} ) {
+            # Normalize all states together below, after defining every source.
+            next;
+        }
         if ( $opts->{'ds'} eq 'rate' ) {
             push( @cmd,
                 qq#CDEF:${vname}_nnl=${vname}_avg,UN,0,${vname}_avg,IF#
@@ -4348,6 +4352,20 @@ sub meta_graph_generic_stack {
             push( @cmd,
                 qq#CDEF:${vname}_nnl=${vname}_avg,UN,0,${vname}_avg,IF,STEPWIDTH,*#
             );
+        }
+    }
+    if ( $opts->{'normalize_to_percent'} ) {
+        # CPU DERIVE values are time-counter rates, not percentages. Ordinary
+        # addition propagates a missing state: do not turn incomplete data into
+        # a plausible 100% stack. A zero total is also an unknown sample.
+        my @values = map { _rrd_vname($_->{'name'}) . '_avg' } @$sources;
+        my $total = shift @values;
+        $total .= ",$_,+" for (@values);
+        push( @cmd, "CDEF:cpu_total=$total" );
+        for my $source (@$sources) {
+            my $vname = _rrd_vname($source->{'name'});
+            push( @cmd,
+                "CDEF:${vname}_nnl=cpu_total,0,GT,${vname}_avg,cpu_total,/,100,*,UNKN,IF" );
         }
     }
     {
@@ -4387,7 +4405,7 @@ sub meta_graph_generic_stack {
             qq(AREA:${vname}_stk#$area_color),
             qq(LINE1:${vname}_stk#$line_color:$legend),
         );
-        if ( $opts->{'ds'} eq 'rate' ) {
+        if ( $opts->{'ds'} eq 'rate' && !$opts->{'normalize_to_percent'} ) {
             push( @cmd,
                 qq(GPRINT:${vname}_min:MIN:$number_format Min,),
                 qq(GPRINT:${vname}_avg:AVERAGE:$number_format Avg,),
@@ -4424,7 +4442,8 @@ sub meta_graph_cpu {
         "$host/$plugin"
       . ( defined($plugin_instance) ? "-$plugin_instance" : '' )
       . "/$type";
-    $opts->{'rrd_opts'} = [ '-v', 'Percent' ];
+    $opts->{'rrd_opts'} = [ '-v', 'Percent', '-l', '0', '-u', '100' ];
+    $opts->{'normalize_to_percent'} = 1;
     my @files = ();
     $opts->{'colors'} = {
         'idle'      => '333333',
