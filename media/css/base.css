@@ -38,16 +38,37 @@
     margin: 5px 0 5px 10px;
 }
 
-#hosts-container, #plugin-container {
+#hosts-container, #view-container, #plugin-container {
     padding: 10px;
 }
 
-#plugins {
+#view, #plugins {
     margin-top: 20px;
 }
 
 #hosts li, #plugins li {
     margin-bottom:8px;
+}
+
+#view-container .graph-view-option {
+    display: block;
+    border: 1px solid transparent;
+    margin: 0;
+    padding: 6px;
+    cursor: pointer;
+}
+
+#view-container .graph-view-option.ui-state-active {
+    border-color: #fbd850;
+}
+
+#view-container .graph-view-option:focus-within {
+    outline: 2px solid #e78f08;
+    outline-offset: 1px;
+}
+
+#view-container input {
+    margin-right: 4px;
 }
 
 .icons {
@@ -141,6 +162,29 @@ span.ui-icon {
     position: relative;
     width: 100%;
     float: left;
+}
+
+/* The selected column count divides the existing graph area; it does not
+   change RRDtool's canvas or the page width. New graphs inherit it as well. */
+#graph-container .sortable > li.gc {
+    float: none;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#graph-container[data-graph-view="grid-2"] .sortable > li.gc {
+    float: left;
+    width: 50%;
+}
+
+#graph-container[data-graph-view="grid-4"] .sortable > li.gc {
+    float: left;
+    width: 25%;
+}
+
+#graph-container[data-graph-view="grid-2"] .sortable > li.gc:nth-child(2n+1),
+#graph-container[data-graph-view="grid-4"] .sortable > li.gc:nth-child(4n+1) {
+    clear: left;
 }
 
 #slide-menu-content {

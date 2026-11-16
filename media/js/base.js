@@ -169,6 +169,27 @@ function hide_toolbar_items () {
     $('.toolbar-item').fadeOut();
 }
 
+function set_graph_view(view, remember) {
+    if (view !== 'grid-2' && view !== 'grid-4') {
+        view = 'list';
+    }
+    // This container survives host/plugin changes and asynchronous graph loads.
+    $('#graph-container').attr('data-graph-view', view);
+    $('#view-container input[name="graph-view"]').each(function () {
+        var selected = $(this).val() === view;
+        $(this).attr('checked', selected);
+        $(this).parent().toggleClass('selected ui-state-active', selected);
+    });
+    if (remember) {
+        try {
+            window.localStorage.setItem('collectd-web.graph-view', view);
+        } catch (error) {
+            // The view still works when browser storage is unavailable.
+        }
+    }
+    lazy_check();
+}
+
 /**
  * default control container
  *
@@ -320,6 +341,19 @@ $(document).ready(function () {
     $('#menu-tabs').tabs();
     $('button').button();
 
+    var saved_view = 'list';
+    try {
+        saved_view = window.localStorage.getItem('collectd-web.graph-view');
+    } catch (error) {
+        // Use List when browser storage is unavailable.
+    }
+    set_graph_view(saved_view, false);
+    $('#view-container input[name="graph-view"]').change(function () {
+        if (this.checked) {
+            set_graph_view($(this).val(), true);
+        }
+    });
+
     $.ajaxSetup({ cache: true });
 
     $("#loading").ajaxStart(function () { $(this).show(); });
@@ -327,7 +361,6 @@ $(document).ready(function () {
     $("#loading").ajaxStop(function () {
         $(this).hide();
         $('.sortable').sortable();
-        $('#graph-view').trigger('change');
     });
 
     $.getJSON('cgi-bin/collection.modified.cgi?action=hostlist_json', function (data) {
@@ -495,40 +528,6 @@ $(document).ready(function () {
         var values = graph_def_values[gdef];
         $('#graphdef-content').val(values.join('\n'));
     });
-
-    $('#graph-view').change(function () {
-        var selected_view = $(this).val();
-        if (selected_view == "grid") {
-            $('#graph-imgs-container .sortable').css({
-                'list-style-type': 'none'
-            });
-            $('#graph-container .sortable li').css({
-                'float': 'left',
-                'width': '200px'
-            });
-
-            $('#graph-container .sortable li img').css('width', '200px');
-
-            $('li.gc .gc-menu').css({
-                'height': '32px',
-                'width': '220px'
-            });
-        } else {
-            // selected_view == 'list'
-            $('#graph-container .sortable li').css({
-                'float': 'none',
-                'width': '100%'
-            });
-
-            $('#graph-container .sortable li img').css('width', '');
-
-            $('li.gc .gc-menu').css({
-                'height': '32px',
-                'width': '220px'
-            });
-        }
-    });
-
 
     //action trigger when any toolbar menu option is clicked
     $('.menu-options .ui-icon').click(function() {

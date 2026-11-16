@@ -101,14 +101,6 @@
                                           <input disabled value="10" name="graph-step" type="text" id="graph-step" class="text" />
                                           </li>
                                           <li class="ttip">
-                                          <div class="ttip-content">Set view options (list or grid) to customize your graphs display</div>
-                                          <label for="graph-view">View: </label>
-                                          <select name="graph-view" id="graph-view">
-                                              <option value="list" selected="selected">List</option>
-                                              <option value="grid">Grid</option>
-                                          </select>
-                                          </li>
-                                          <li class="ttip">
                                           <div class="ttip-content">Setting this option will cache images for 5 minutes and lazyload when necessary</div>
                                           <input value="Enable graph caching" type="checkbox" id="graph-caching-checkbox" />Enable graph caching and lazyloading
                                           </li>
@@ -176,6 +168,18 @@
                       <ul></ul>
                     </div>
                   </div>
+                  <div id="view" class="no-bullets ui-widget">
+                    <div class="ui-widget-header ui-corner-top">
+                      <h3 id="view-title">View</h3>
+                    </div>
+                    <div id="view-container" class="ui-widget-content ui-corner-bottom" role="group" aria-labelledby="view-title">
+                      <ul>
+                        <li><label class="graph-view-option ui-corner-all" for="graph-view-list"><input type="radio" name="graph-view" id="graph-view-list" value="list" checked="checked" /> List</label></li>
+                        <li><label class="graph-view-option ui-corner-all" for="graph-view-grid-2"><input type="radio" name="graph-view" id="graph-view-grid-2" value="grid-2" /> Grid: 2 columns</label></li>
+                        <li><label class="graph-view-option ui-corner-all" for="graph-view-grid-4"><input type="radio" name="graph-view" id="graph-view-grid-4" value="grid-4" /> Grid: 4 columns</label></li>
+                      </ul>
+                    </div>
+                  </div>
                   <div id="plugins" class="no-bullets ui-widget">
                     <ul></ul>
                   </div>
@@ -183,7 +187,7 @@
                 <div class="col-md-9 col-sm-12">
                   <div class="row">
                     <div class='col-12'>
-                      <div id="graph-container" class="no-bullets"></div>
+                      <div id="graph-container" class="no-bullets" data-graph-view="list"></div>
                     </div>
                   </div>
                 </div>
