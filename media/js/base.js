@@ -169,20 +169,62 @@ function hide_toolbar_items () {
     $('.toolbar-item').fadeOut();
 }
 
-function set_graph_view(view, remember) {
-    if (view !== 'grid-2' && view !== 'grid-4') {
-        view = 'list';
+var graph_view_preferences = {width: 'normal', layout: 'list', columns: 2};
+
+function restore_graph_view() {
+    try {
+        var saved = window.localStorage.getItem('collectd-web.view');
+        if (saved) {
+            var preferences = JSON.parse(saved);
+            if (preferences && typeof preferences === 'object') {
+                graph_view_preferences.width = preferences.width === 'wide' ? 'wide' : 'normal';
+                graph_view_preferences.layout = preferences.layout === 'grid' ? 'grid' : 'list';
+                if (preferences.columns === 2 || preferences.columns === 4 || preferences.columns === 8) {
+                    graph_view_preferences.columns = preferences.columns;
+                }
+            }
+        } else {
+            // Preserve R2's four-column choice by opening it in Wide mode.
+            var legacy = window.localStorage.getItem('collectd-web.graph-view');
+            if (legacy === 'grid-2' || legacy === 'grid-4') {
+                graph_view_preferences.layout = 'grid';
+                graph_view_preferences.columns = legacy === 'grid-4' ? 4 : 2;
+                graph_view_preferences.width = legacy === 'grid-4' ? 'wide' : 'normal';
+            }
+        }
+    } catch (error) {
+        // Defaults also work with invalid JSON or unavailable browser storage.
     }
+    set_graph_view(false);
+}
+
+function set_graph_view(remember) {
+    var preferences = graph_view_preferences;
+    var narrow = window.matchMedia && window.matchMedia('(max-width: 767.98px)').matches;
+    var wide = preferences.width === 'wide' && !narrow;
+    var columns = wide ? preferences.columns : 2;
+    var view = preferences.layout === 'grid' ? 'grid-' + columns : 'list';
+
+    $('body').attr('data-page-width', preferences.width);
     // This container survives host/plugin changes and asynchronous graph loads.
     $('#graph-container').attr('data-graph-view', view);
-    $('#view-container input[name="graph-view"]').each(function () {
-        var selected = $(this).val() === view;
-        $(this).attr('checked', selected);
-        $(this).parent().toggleClass('selected ui-state-active', selected);
+    $('#view-container input[type="radio"]').each(function () {
+        var value = this.name === 'page-width' ? preferences.width : preferences.layout;
+        this.checked = this.value === value;
+        $(this).closest('.graph-view-option').toggleClass('selected ui-state-active', this.checked);
     });
+
+    var select = $('#graph-columns');
+    if (select.data('wide') !== wide) {
+        select.html(wide ? '<option value="2">2</option><option value="4">4</option><option value="8">8</option>' : '<option value="2">2</option>');
+        select.data('wide', wide);
+    }
+    select.val(String(columns));
+
     if (remember) {
         try {
-            window.localStorage.setItem('collectd-web.graph-view', view);
+            // Keep the preferred wide-screen columns when temporarily capped.
+            window.localStorage.setItem('collectd-web.view', JSON.stringify(preferences));
         } catch (error) {
             // The view still works when browser storage is unavailable.
         }
@@ -244,6 +286,10 @@ function show_lazy_graph(elem) {
     $(elem).attr('src', $(elem).attr('title'));
 }
 
+function initialize_graph_sorting() {
+    $('#graph-container .sortable').sortable({cancel: ':input,option,.gc-menu'});
+}
+
 function create_graph_list(timespan, graphs) {
     var end_date = server_now();
     var start_date = get_timespan_start(timespan);
@@ -257,15 +303,16 @@ function create_graph_list(timespan, graphs) {
         $tpl += '<li class="gc">';
         $tpl += get_graph_menu();
         if ($('#graph-caching-checkbox').attr('checked')) {
-            $tpl += '<img class="gc-img toload" src="media/images/graph-load.png" title="' + final_url + '"/></li>';
+            $tpl += '<img class="gc-img toload" src="media/images/graph-load.png" title="' + final_url + '"/>';
         } else {
-            $tpl += '<img class="gc-img" src="' + final_url + '"/></li>';
+            $tpl += '<img class="gc-img" src="' + final_url + '"/>';
         }
         $tpl += '</li>';
     }
     $tpl += '</ul>';
     $tpl += '</li>';
     $('.graph-imgs-container').append($tpl);
+    initialize_graph_sorting();
 }
 
 function lazy_check() {
@@ -341,17 +388,31 @@ $(document).ready(function () {
     $('#menu-tabs').tabs();
     $('button').button();
 
-    var saved_view = 'list';
-    try {
-        saved_view = window.localStorage.getItem('collectd-web.graph-view');
-    } catch (error) {
-        // Use List when browser storage is unavailable.
-    }
-    set_graph_view(saved_view, false);
+    restore_graph_view();
+    $('#view-container input[name="page-width"]').change(function () {
+        if (this.checked) {
+            graph_view_preferences.width = this.value;
+            set_graph_view(true);
+        }
+    });
     $('#view-container input[name="graph-view"]').change(function () {
         if (this.checked) {
-            set_graph_view($(this).val(), true);
+            graph_view_preferences.layout = this.value;
+            set_graph_view(true);
         }
+    });
+    $('#graph-columns').change(function () {
+        var columns = parseInt(this.value, 10);
+        if (columns === 2 || columns === 4 || columns === 8) {
+            graph_view_preferences.columns = columns;
+            graph_view_preferences.layout = 'grid';
+            set_graph_view(true);
+        }
+    });
+    var view_resize_timer;
+    $(window).resize(function () {
+        window.clearTimeout(view_resize_timer);
+        view_resize_timer = window.setTimeout(function () { set_graph_view(false); }, 100);
     });
 
     $.ajaxSetup({ cache: true });
@@ -360,7 +421,7 @@ $(document).ready(function () {
 
     $("#loading").ajaxStop(function () {
         $(this).hide();
-        $('.sortable').sortable();
+        initialize_graph_sorting();
     });
 
     $.getJSON('cgi-bin/collection.modified.cgi?action=hostlist_json', function (data) {

@@ -16,11 +16,33 @@
 }
 
 .gc-img {
+  display: block;
   width: 100%;
+  height: auto;
 }
 
-.graph-imgs-container ul {
-  padding-left: 0;
+/* Keep Bootstrap's existing stacked navigation below its md breakpoint. */
+@media (min-width: 768px) {
+    body[data-page-width="wide"] > .container {
+        max-width: none;
+    }
+
+    body[data-page-width="wide"] .page-sidebar {
+        flex: 0 0 272px;
+        width: 272px;
+    }
+
+    body[data-page-width="wide"] .page-graphs {
+        flex: 1 1 0;
+        width: auto;
+        min-width: 0;
+    }
+
+    /* Match the expanded page without changing the toolbar's contents. */
+    body[data-page-width="wide"] #toolbar-container {
+        width: calc(100% - 24px);
+        max-width: none;
+    }
 }
 
 
@@ -51,11 +73,29 @@
 }
 
 #view-container .graph-view-option {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 4px;
     border: 1px solid transparent;
     margin: 0;
-    padding: 6px;
+    padding: 4px 6px;
     cursor: pointer;
+}
+
+#view-container .graph-view-option > label {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    cursor: pointer;
+}
+
+#view-container hr {
+    margin: 6px 0;
+}
+
+#graph-columns {
+    width: auto;
+    padding: 0 2px;
 }
 
 #view-container .graph-view-option.ui-state-active {
@@ -158,33 +198,47 @@ span.ui-icon {
     padding-left: 10px;
 }
 
+#graph-container .graph-imgs-container,
+#graph-container .sortable {
+    margin: 0;
+    padding: 0;
+}
+
 #graph-container .sortable {
     position: relative;
     width: 100%;
-    float: left;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
 }
 
-/* The selected column count divides the existing graph area; it does not
-   change RRDtool's canvas or the page width. New graphs inherit it as well. */
+/* Grid sizes tracks and aligns each row, including unequal image heights.
+   float has no layout effect on grid items, but jQuery UI 1.8 reads it when
+   initializing sortable to enable movement in both directions. */
 #graph-container .sortable > li.gc {
-    float: none;
-    width: 100%;
+    float: left;
+    min-width: 0;
     box-sizing: border-box;
+    border: 1px solid #d9d9d9;
 }
 
-#graph-container[data-graph-view="grid-2"] .sortable > li.gc {
-    float: left;
-    width: 50%;
+#graph-container[data-graph-view="grid-2"] .sortable {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-#graph-container[data-graph-view="grid-4"] .sortable > li.gc {
-    float: left;
-    width: 25%;
+#graph-container[data-graph-view="grid-4"] .sortable {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-#graph-container[data-graph-view="grid-2"] .sortable > li.gc:nth-child(2n+1),
-#graph-container[data-graph-view="grid-4"] .sortable > li.gc:nth-child(4n+1) {
-    clear: left;
+#graph-container[data-graph-view="grid-8"] .sortable {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+}
+
+@media (prefers-color-scheme: dark) {
+    #graph-container .sortable > li.gc {
+        border-color: #555;
+    }
 }
 
 #slide-menu-content {
@@ -236,16 +290,31 @@ li.gc .selected {
 
 li.gc .gc-menu {
     position: absolute;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     visibility: hidden;
-    right: 10px;
-    top: 10px;
+    right: 4px;
+    top: 4px;
     filter: alpha(opacity = 90);
     -moz-opacity: 0.9;
     -khtml-opacity: 0.9;
     opacity: 0.9;
-    height: 32px;
-    width: 220px;
+    height: auto;
+    width: max-content;
+    max-width: calc(100% - 8px);
     z-index: 40;
+}
+
+/* The old clearfix pseudo-elements must not become flex items. */
+li.gc .gc-menu::before,
+li.gc .gc-menu::after {
+    display: none;
+}
+
+li.gc .gc-menu .icons {
+    float: none;
+    flex: 0 0 auto;
 }
 
 li.gc {
