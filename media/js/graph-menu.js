@@ -189,10 +189,14 @@ $(function() {
 
   $('li.graph-image .ui-icon-disk').live('click', function() {
     var img_tag = $(this).parent().parent().next().next();
+    var graph_url = $(img_tag).attr($(img_tag).hasClass('toload') ? 'title' : 'src');
     $("#output-dialog a").each(function() {
-      $this = $(this);
-      var join_url = $(img_tag).attr('src') + $this.attr('href');
-      $this.attr('href', join_url);
+      var output = $(this);
+      var format = output.attr('href').match(/&format=(EPS|PDF|SVG)$/);
+      if (format) {
+        // Rebuild from the current graph, including its idle preference.
+        output.attr('href', graph_url + '&format=' + format[1]);
+      }
     });
     $("#output-dialog").dialog( {
       title : 'Select output format:',

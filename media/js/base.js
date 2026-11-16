@@ -24,6 +24,7 @@ var $selected_plugin = '';
 var $graph_json = null;
 var window_top = 0;
 var previous_window_top = 0;
+var cpu_idle_visible = true;
 
 
 // error free logger taken from:
@@ -144,6 +145,9 @@ function build_url(original_url, new_params) {
     Fb.log(new_params, "warning");
     params = get_url_params(original_url);
     $.extend(params, new_params);
+    if (params.plugin === 'cpu' && params.type === 'cpu') {
+        params.cpu_idle = cpu_idle_visible ? '1' : '0';
+    }
     var url = original_url.split('?')[0] + '?';
     for (key in params) {
         if (params[key] !== '' || params[key] === 0) {
@@ -156,6 +160,38 @@ function build_url(original_url, new_params) {
 
 function is_dark_mode() {
     return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
+function set_cpu_idle_visibility(visible) {
+    cpu_idle_visible = visible;
+    try {
+        window.localStorage.setItem('collectd-web.cpu-idle', visible ? '1' : '0');
+    } catch (e) {
+        // The option still works when browser storage is unavailable.
+    }
+    $('.gc-img').each(function () {
+        var img = $(this);
+        // Update deferred requests without eagerly loading off-screen graphs.
+        var attribute = img.hasClass('toload') ? 'title' : 'src';
+        var url = img.attr(attribute);
+        var graph_params = get_url_params(url);
+        if (graph_params.plugin === 'cpu' && graph_params.type === 'cpu') {
+            var updated = build_url(url, {});
+            img.attr(attribute, updated);
+            if (attribute === 'src' && img.attr('title')) {
+                img.attr('title', updated);
+            }
+        }
+    });
+}
+
+function restore_cpu_idle_visibility() {
+    try {
+        cpu_idle_visible = window.localStorage.getItem('collectd-web.cpu-idle') !== '0';
+    } catch (e) {
+        cpu_idle_visible = true;
+    }
+    $('#show-cpu-idle-checkbox').attr('checked', cpu_idle_visible);
 }
 
 function build_url_with_theme(url, params) {
@@ -408,6 +444,10 @@ $(document).ready(function () {
     $('button').not('.toolbar-button').button();
 
     restore_graph_view();
+    restore_cpu_idle_visibility();
+    $('#show-cpu-idle-checkbox').change(function () {
+        set_cpu_idle_visibility(this.checked);
+    });
     $('#view-container input[name="page-width"]').change(function () {
         if (this.checked) {
             graph_view_preferences.width = this.value;

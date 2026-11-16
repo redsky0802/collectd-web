@@ -4387,6 +4387,9 @@ sub meta_graph_generic_stack {
     for ( my $i = 0 ; $i < @$sources ; $i++ ) {
         my $inst_data = $sources->[$i];
         my $inst_name = $inst_data->{'name'};
+        # Idle sorts first, so the other cumulative areas do not include it.
+        # Keep its DEF and percentage contribution even when it is not drawn.
+        next if ( $opts->{'hide_idle'} && $inst_name eq 'idle' );
         my $vname     = _rrd_vname($inst_name);
         my $legend    = sprintf( '%-*s\t', $max_inst_name, $inst_name );
         my $line_color;
@@ -4444,6 +4447,7 @@ sub meta_graph_cpu {
       . "/$type";
     $opts->{'rrd_opts'} = [ '-v', 'Percent', '-l', '0', '-u', '100' ];
     $opts->{'normalize_to_percent'} = 1;
+    $opts->{'hide_idle'} = defined(param('cpu_idle')) && param('cpu_idle') eq '0';
     my @files = ();
     $opts->{'colors'} = {
         'idle'      => '333333',
