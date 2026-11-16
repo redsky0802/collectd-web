@@ -28,6 +28,7 @@ use HTML::Entities ('encode_entities');
 use URI::Escape    ('uri_escape');
 use RRDs           ();
 use Data::Dumper   ();
+use Encode         (qw(decode FB_CROAK LEAVE_SRC));
 use JSON ('to_json');
 our $config_file   = "/etc/collectd/collection.conf";
 if ($Config{osname} eq q{freebsd}){
@@ -58,7 +59,7 @@ our @RRDDefaultArgs = (
   '--alt-autoscale-max',
   '--alt-y-grid',
   '--slope-mode',
-  '--font', 'TITLE:28:Monospace',
+  '--font', 'TITLE:14:Monospace',
   '--font', 'AXIS:10:Monospace',
   '--font', 'LEGEND:12:Monospace',
   '--font', 'UNIT:12:Monospace',
@@ -822,6 +823,70 @@ sub action_show_type {
     }
 }    # action_show_type
 
+# Display text only: never use this result to construct an RRD filename.
+sub graph_display_title {
+    my ($host, $plugin, $plugin_instance, $type, $type_instance) = @_;
+    my $object = $plugin;
+    $object .= "[$plugin_instance]"
+      if ( defined($plugin_instance) && length($plugin_instance) );
+
+    my $metric = $type;
+    $metric .= "[$type_instance]"
+      if ( defined($type_instance) && length($type_instance)
+           && $type_instance ne $type );
+    my $detail = $object;
+    $detail .= " / $metric" if ( $metric ne $plugin );
+
+    return join("\n", graph_title_lines($host), graph_title_lines($detail));
+}
+
+# With the 1040-pixel canvas and 14-point monospace title, 80 columns leave
+# room for font substitution. Keep all characters, including serial numbers;
+# prefer breaks after separators and split long unbroken identifiers as needed.
+sub graph_title_lines {
+    my $text = shift;
+    if ( !utf8::is_utf8($text) ) {
+        my $decoded = eval { decode('UTF-8', $text, FB_CROAK | LEAVE_SRC) };
+        $text = $decoded if defined($decoded);
+    }
+    my @chars = ($text =~ /\X/g);
+    my @lines;
+    while (@chars) {
+        my ($columns, $count, $break) = (0, 0, 0);
+        for my $char (@chars) {
+            # Conservatively allow two columns for non-ASCII graphemes.
+            my $width = $char =~ /[^\x00-\x7f]/ ? 2 : 1;
+            last if $columns + $width > 80;
+            $columns += $width;
+            $count++;
+            $break = $count if $char =~ /[\s\/_.-]/ && $columns >= 40;
+        }
+        $count = $break if $count < @chars && $break;
+        push @lines, join('', splice(@chars, 0, $count));
+    }
+    return @lines;
+}
+
+# RRDtool 1.7.x silently discards title lines after the third. For unusually
+# long identities, mark the omitted middle and repeat the complete title below
+# the legend. COMMENT works in SVG and in the other supported export formats.
+sub graph_title_layout {
+    my $title = shift;
+    my @lines = split(/\n/, $title);
+    return ($title, []) if @lines <= 3;
+
+    my $middle = $lines[1];
+    $middle =~ s/\X\z// for 1..6;
+    $middle .= ' [...]';
+    my @notes = ('COMMENT:Full title\\l');
+    for my $line (@lines) {
+        $line =~ s/\\/\\\\/g;
+        $line =~ s/:/\\:/g;
+        push @notes, "COMMENT:$line\\l";
+    }
+    return (join("\n", $lines[0], $middle, $lines[-1]), \@notes);
+}
+
 sub action_show_graph {
     my $host            = shift;
     my $plugin          = shift;
@@ -873,9 +938,8 @@ sub action_show_graph {
     } else {
         @rrd_args = @{ $GraphDefs->{$type} };
     }
-    my $short_title =
-        ( defined($plugin_instance) ? "$plugin_instance/" : '' ) . "$type"
-      . ( defined($type_instance)   ? "-$type_instance"   : '' );
+    my ($display_title, $title_notes) = graph_title_layout(graph_display_title(
+        $host, $plugin, $plugin_instance, $type, $type_instance));
     $title =
         "$host/$plugin"
       . ( defined($plugin_instance) ? "-$plugin_instance" : '' )
@@ -895,18 +959,20 @@ sub action_show_graph {
             '-a', $OutputFormat,
             '-s', $start_time,
             '-e', $end_time,
-            '-t', $short_title,
+            '-t', $display_title,
             @RRDDefaultArgs,
-            @rrd_args
+            @rrd_args,
+            @$title_notes
         );
     } else {
         RRDs::graph(
             '-',
             '-a', $OutputFormat,
             '-s', $start_time,
-            '-t', $short_title,
+            '-t', $display_title,
             @RRDDefaultArgs,
-            @rrd_args
+            @rrd_args,
+            @$title_notes
         );
     }
         if ( my $err = RRDs::error() ) {
@@ -1044,7 +1110,7 @@ sub load_graph_definitions {
             '--alt-autoscale-max',
             '--alt-y-grid',
             '--slope-mode',
-            '--font', 'TITLE:28:Monospace',
+            '--font', 'TITLE:14:Monospace',
             '--font', 'AXIS:10:Monospace',
             '--font', 'LEGEND:12:Monospace',
             '--font', 'UNIT:12:Monospace',
@@ -4216,6 +4282,8 @@ sub meta_graph_generic_stack {
     my $timespan_str = _get_param_timespan();
     my $timespan_int = (-1) * $ValidTimespan->{$timespan_str};
     $opts->{'title'}    ||= 'Unknown title';
+    my ($display_title, $title_notes) = graph_title_layout(
+        $opts->{'display_title'} // $opts->{'title'});
     $opts->{'rrd_opts'} ||= [];
     $opts->{'colors'}   ||= {};
     $opts->{'ds'}       ||= 'rate';
@@ -4231,7 +4299,7 @@ sub meta_graph_generic_stack {
             '-a', $OutputFormat,
             '-s', $start_time,
             '-e', $end_time,
-            '-t', $opts->{'title'} || 'Unknown title',
+            '-t', $display_title,
             @RRDDefaultArgs,
             @{ $opts->{'rrd_opts'} }
         );
@@ -4240,7 +4308,7 @@ sub meta_graph_generic_stack {
             '-',
             '-a', $OutputFormat,
             '-s', $timespan_int,
-            '-t', $opts->{'title'} || 'Unknown title',
+            '-t', $display_title,
             @RRDDefaultArgs,
             @{ $opts->{'rrd_opts'} }
         );
@@ -4334,7 +4402,7 @@ sub meta_graph_generic_stack {
             );
         }
     }
-    RRDs::graph(@cmd);
+    RRDs::graph(@cmd, @$title_notes);
     if ( my $errmsg = RRDs::error() ) {
         confess("RRDs::graph: $errmsg");
     }
@@ -4348,6 +4416,8 @@ sub meta_graph_cpu {
     my $type            = shift;
     my $type_instances  = shift;
     my $opts            = {};
+    $opts->{'display_title'} = graph_display_title(
+        $host, $plugin, $plugin_instance, $type, undef);
     my $sources         = [];
     $opts->{'title'} =
         "$host/$plugin"
@@ -4398,6 +4468,8 @@ sub meta_graph_df_complex {
     my $type            = shift;
     my $type_instances  = shift;
     my $opts            = {};
+    $opts->{'display_title'} = graph_display_title(
+        $host, $plugin, $plugin_instance, $type, undef);
     my $sources         = [];
     $opts->{'title'} =
         "$host/$plugin"
@@ -4450,6 +4522,8 @@ sub meta_graph_dns
   my $type_instances = shift;
 
   my $opts = {};
+  $opts->{'display_title'} = graph_display_title(
+      $host, $plugin, $plugin_instance, $type, undef);
   my $sources = [];
 
   $opts->{'title'} = "$host/$plugin"
@@ -4499,6 +4573,8 @@ sub meta_graph_memory {
     my $type            = shift;
     my $type_instances  = shift;
     my $opts            = {};
+    $opts->{'display_title'} = graph_display_title(
+        $host, $plugin, $plugin_instance, $type, undef);
     my $sources         = [];
     $opts->{'title'} =
         "$host/$plugin"
@@ -4545,6 +4621,8 @@ sub meta_graph_if_rx_errors {
     my $type            = shift;
     my $type_instances  = shift;
     my $opts            = {};
+    $opts->{'display_title'} = graph_display_title(
+        $host, $plugin, $plugin_instance, $type, undef);
     my $sources         = [];
     $opts->{'title'} =
         "$host/$plugin"
@@ -4584,6 +4662,8 @@ sub meta_graph_mysql_commands {
     my $type            = shift;
     my $type_instances  = shift;
     my $opts            = {};
+    $opts->{'display_title'} = graph_display_title(
+        $host, $plugin, $plugin_instance, $type, undef);
     my $sources         = [];
     $opts->{'title'} =
         "$host/$plugin"
@@ -4622,6 +4702,8 @@ sub meta_graph_nfs_procedure {
     my $type            = shift;
     my $type_instances  = shift;
     my $opts            = {};
+    $opts->{'display_title'} = graph_display_title(
+        $host, $plugin, $plugin_instance, $type, undef);
     my $sources         = [];
     $opts->{'title'} =
         "$host/$plugin"
@@ -4660,6 +4742,8 @@ sub meta_graph_pkg {
     my $type            = shift;
     my $type_instances  = shift;
     my $opts            = {};
+    $opts->{'display_title'} = graph_display_title(
+        $host, $plugin, $plugin_instance, $type, undef);
     my $sources         = [];
     $opts->{'title'} =
         "$host/$plugin"
@@ -4708,6 +4792,8 @@ sub meta_graph_ps_state {
     my $type            = shift;
     my $type_instances  = shift;
     my $opts            = {};
+    $opts->{'display_title'} = graph_display_title(
+        $host, $plugin, $plugin_instance, $type, undef);
     my $sources         = [];
     $opts->{'title'} =
         "$host/$plugin"
@@ -4756,6 +4842,8 @@ sub meta_graph_swap {
     my $type            = shift;
     my $type_instances  = shift;
     my $opts            = {};
+    $opts->{'display_title'} = graph_display_title(
+        $host, $plugin, $plugin_instance, $type, undef);
     my $sources         = [];
     $opts->{'title'} =
         "$host/$plugin"
@@ -4802,6 +4890,8 @@ sub meta_graph_tcp_connections {
     my $type            = shift;
     my $type_instances  = shift;
     my $opts            = {};
+    $opts->{'display_title'} = graph_display_title(
+        $host, $plugin, $plugin_instance, $type, undef);
     my $sources         = [];
     $opts->{'title'} =
         "$host/$plugin"
@@ -4864,6 +4954,8 @@ sub meta_graph_vmpage_number
     my $type_instances = shift;
 
     my $opts = {};
+    $opts->{'display_title'} = graph_display_title(
+        $host, $plugin, $plugin_instance, $type, undef);
     my $sources = [];
 
     $opts->{'title'} = "$host/$plugin"
@@ -4925,6 +5017,8 @@ sub meta_graph_vmpage_action
     my $type_instances = shift;
 
     my $opts = {};
+    $opts->{'display_title'} = graph_display_title(
+        $host, $plugin, $plugin_instance, $type, undef);
     my $sources = [];
 
     $opts->{'title'} = "$host/$plugin"
