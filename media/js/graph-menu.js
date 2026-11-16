@@ -157,19 +157,19 @@ $(function() {
     zoom_graph(this, true);
   });
 
-  $('.item-pan-zoom .ui-icon-triangle-1-e').live('click', function() {
+  $('#toolbar-content [data-action="pan-right"]').live('click', function() {
     move_selected_graphs(false);
   });
 
-  $('.item-pan-zoom .ui-icon-triangle-1-w').live('click', function() {
+  $('#toolbar-content [data-action="pan-left"]').live('click', function() {
     move_selected_graphs(true);
   });
 
-  $('.item-pan-zoom .ui-icon-zoomin').live('click', function() {
+  $('#toolbar-content [data-action="zoom-in"]').live('click', function() {
     zoom_selected_graphs(false);
   });
 
-  $('.item-pan-zoom .ui-icon-zoomout').live('click', function() {
+  $('#toolbar-content [data-action="zoom-out"]').live('click', function() {
     zoom_selected_graphs(true);
   });
 

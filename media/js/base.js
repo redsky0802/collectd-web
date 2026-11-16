@@ -165,8 +165,36 @@ function build_url_with_theme(url, params) {
     return build_url(url, params);
 }
 
-function hide_toolbar_items () {
-    $('.toolbar-item').fadeOut();
+function update_toolbar_space() {
+    var height = $('#toolbar-container').outerHeight();
+    if (height > 0) {
+        $('#page-content').css('padding-bottom', Math.ceil(height) + 12);
+    }
+}
+
+function show_toolbar_panel(panel) {
+    var target = $('#toolbar-content .toolbar-item.' + panel);
+    if (!target.length) {
+        return;
+    }
+    $('#toolbar-content .toolbar-item').hide();
+    target.css('display', 'flex');
+    $('#toolbar-home').attr('aria-expanded', panel === 'menu-options' ? 'true' : 'false');
+    update_toolbar_space();
+    // Keep keyboard focus in the panel after its launching button is hidden.
+    target.find('input,button').first().focus();
+}
+
+function initialize_toolbar() {
+    update_toolbar_space();
+    $(window).bind('resize.toolbar load.toolbar', update_toolbar_space);
+    if (window.ResizeObserver) {
+        var observer = new window.ResizeObserver(update_toolbar_space);
+        observer.observe(document.getElementById('toolbar-container'));
+    }
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(update_toolbar_space);
+    }
 }
 
 var graph_view_preferences = {width: 'normal', layout: 'list', columns: 2};
@@ -220,6 +248,7 @@ function set_graph_view(remember) {
         select.data('wide', wide);
     }
     select.val(String(columns));
+    update_toolbar_space();
 
     if (remember) {
         try {
@@ -373,20 +402,10 @@ var load_url = function () {
     return false;
 };
 
-function ipad_position_fix () {
-
-    if(navigator.platform == 'iPad' || navigator.platform == 'iPhone' || navigator.platform == 'iPod')
-    {
-        $( window ).scroll( function ( ) {
-            $( "#toolbar-container" ).css( "top", ( $( window ).height() + $( document ).scrollTop() - 30 ) +"px" );
-        } );
-    }
-}
-
 $(document).ready(function () {
 
     $('#menu-tabs').tabs();
-    $('button').button();
+    $('button').not('.toolbar-button').button();
 
     restore_graph_view();
     $('#view-container input[name="page-width"]').change(function () {
@@ -538,7 +557,7 @@ $(document).ready(function () {
         });
     }
 
-    $('#rrdeditor-submit').click(function () {
+    $('#rrdeditor-form').submit(function () {
         $('#timespan-menu').data('start',$('.timespan-from').val());
         $('#timespan-menu').data('end', $('.timespan-to').val());
 
@@ -591,18 +610,19 @@ $(document).ready(function () {
     });
 
     //action trigger when any toolbar menu option is clicked
-    $('.menu-options .ui-icon').click(function() {
-        hide_toolbar_items();
-        $('.'+$(this).attr('id')).fadeIn();
+    $('.menu-options .toolbar-button').click(function() {
+        show_toolbar_panel(this.id);
     });
 
-    $('#toolbar-content .ui-icon-home').click(function() {
-        hide_toolbar_items();
-        $('.menu-options').fadeIn();
+    $('#toolbar-home').click(function() {
+        show_toolbar_panel('menu-options');
     });
 
     $('.ts-item').click(function() {
         var timespan = $(this).attr('title');
+        if (!$graph_json || !$graph_json[timespan]) {
+            return;
+        }
 
         var end_date = server_now();
         var start_date = get_timespan_start(timespan);
@@ -618,5 +638,5 @@ $(document).ready(function () {
         lazy_check();
     });
 
-    ipad_position_fix();
+    initialize_toolbar();
 });

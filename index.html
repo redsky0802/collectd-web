@@ -156,7 +156,7 @@
               </div>
             </div>
         </div>
-        <div class='container' style="margin-bottom:60px;">
+        <div id="page-content" class="container">
             <div class='row'>
                 <div class="col-md-3 col-sm-12 page-sidebar">
                   <div id="hosts" class="no-bullets ui-widget">
@@ -204,41 +204,40 @@
 
 
         </div>
-        <div class='container'>
-
-        </div>
-        <div class="container">
-            <div id="toolbar-container" class="ui-widget container">
-                <div id="toolbar-content" class="ui-widget-header ui-corner-top column span-22 append-1 prepend-1">
-                    <span class="icons ui-state-default ui-corner-all"><span class="ui-icon ui-icon-home"></span></span>
-                    <div class="toolbar-item menu-options" style="display:none;">
-                        <span class="icons ui-state-default ui-corner-all icon-left"><span id="item-pan-zoom" class="ui-icon text-icon" title="Pan and Zoom options">Pan/Zoom</span></span>
-                        <span class="icons ui-state-default ui-corner-all icon-right"><span id="item-timespan" class="ui-icon text-icon" title="Timespan options">Timespan</span></span>
+        <div id="toolbar-container" class="container ui-widget">
+            <div id="toolbar-content" role="group" aria-label="Graph controls">
+                <button type="button" id="toolbar-home" class="toolbar-button" title="Toolbar options" aria-label="Toolbar options" aria-controls="toolbar-modes" aria-expanded="false"><span class="ui-icon ui-icon-home" aria-hidden="true"></span></button>
+                <div id="toolbar-modes" class="toolbar-item menu-options" style="display:none;">
+                    <button type="button" id="item-pan-zoom" class="toolbar-button" aria-controls="toolbar-pan-zoom">Pan/Zoom</button>
+                    <button type="button" id="item-timespan" class="toolbar-button" aria-controls="toolbar-timespan">Timespan</button>
+                </div>
+                <div id="toolbar-pan-zoom" class="toolbar-item item-pan-zoom">
+                    <div class="toolbar-group" role="group" aria-label="Time range">
+                        <span class="toolbar-symbol" aria-hidden="true"><span class="ui-icon ui-icon-clock"></span></span>
+                        <button type="button" class="toolbar-button ts-item" title="hour" aria-label="Last hour">H</button>
+                        <button type="button" class="toolbar-button ts-item" title="day" aria-label="Last day">D</button>
+                        <button type="button" class="toolbar-button ts-item" title="week" aria-label="Last week">W</button>
+                        <button type="button" class="toolbar-button ts-item" title="month" aria-label="Last month">M</button>
+                        <button type="button" class="toolbar-button ts-item" title="year" aria-label="Last year">Y</button>
+                        <button type="button" class="toolbar-button ts-item" title="decade" aria-label="Last decade">T</button>
                     </div>
-                    <div class="toolbar-item item-pan-zoom">
-                        <span class="icons ui-state-default ui-corner-all icon-left"><span class="ui-icon ui-icon-clock"></span></span>
-                        <span class="icons ui-state-default ui-corner-all icon-middle"><span class="ts-item ui-icon text-icon" title="hour">H</span></span>
-                        <span class="icons ui-state-default ui-corner-all icon-middle"><span class="ts-item ui-icon text-icon" title="day">D</span></span>
-                        <span class="icons ui-state-default ui-corner-all icon-middle"><span class="ts-item ui-icon text-icon" title="week">W</span></span>
-                        <span class="icons ui-state-default ui-corner-all icon-middle"><span class="ts-item ui-icon text-icon" title="month">M</span></span>
-                        <span class="icons ui-state-default ui-corner-all icon-middle"><span class="ts-item ui-icon text-icon" title="year">Y</span></span>
-                        <span class="icons ui-state-default ui-corner-all icon-right"><span class="ts-item ui-icon text-icon" title="decade">T</span></span>
-
-                        <span class="icons ui-state-default ui-corner-all icon-left"><span class="ui-icon ui-icon-triangle-1-w"></span></span>
-                        <span class="icons ui-state-default ui-corner-all icon-middle"><span class="ui-icon ui-icon-triangle-1-e"></span></span>
-                        <span class="icons ui-state-default ui-corner-all icon-middle"><span class="ui-icon ui-icon-zoomin"></span></span>
-                        <span class="icons ui-state-default ui-corner-all icon-right"><span class="ui-icon ui-icon-zoomout"></span></span>
-
-                        <span class="icons ui-state-default ui-corner-all icon-left"><span id="select-all" class="ui-icon text-icon" title="Select All">All</span></span>
-                        <span class="icons ui-state-default ui-corner-all icon-right"><span id="select-none" class="ui-icon text-icon" title="Select None">None</span></span>
+                    <div class="toolbar-group" role="group" aria-label="Pan and zoom">
+                        <button type="button" class="toolbar-button" data-action="pan-left" title="Pan earlier" aria-label="Pan earlier"><span class="ui-icon ui-icon-triangle-1-w" aria-hidden="true"></span></button>
+                        <button type="button" class="toolbar-button" data-action="pan-right" title="Pan later" aria-label="Pan later"><span class="ui-icon ui-icon-triangle-1-e" aria-hidden="true"></span></button>
+                        <button type="button" class="toolbar-button" data-action="zoom-in" title="Zoom in" aria-label="Zoom in"><span class="ui-icon ui-icon-zoomin" aria-hidden="true"></span></button>
+                        <button type="button" class="toolbar-button" data-action="zoom-out" title="Zoom out" aria-label="Zoom out"><span class="ui-icon ui-icon-zoomout" aria-hidden="true"></span></button>
                     </div>
-                    <div class="toolbar-item item-timespan" style="display:none;">
-                        <form id="rrdeditor-form" action="">
-                            <input placeholder="Start" required type="datetime-local" name="date_from" class="text timespan-from" />
-                            <input placeholder="End" required type="datetime-local" name="date_to" class="text timespan-to" />
-                        </form>
-                        <span class="icons ui-state-default ui-corner-all"><span id="rrdeditor-submit" class="ui-icon ui-icon-check"></span></span>
+                    <div class="toolbar-group" role="group" aria-label="Graph selection">
+                        <button type="button" id="select-all" class="toolbar-button" title="Select all graphs">All</button>
+                        <button type="button" id="select-none" class="toolbar-button" title="Select no graphs">None</button>
                     </div>
+                </div>
+                <div id="toolbar-timespan" class="toolbar-item item-timespan" style="display:none;">
+                    <form id="rrdeditor-form" action="">
+                        <label for="timespan-from">Start<input id="timespan-from" required type="datetime-local" name="date_from" class="timespan-from" /></label>
+                        <label for="timespan-to">End<input id="timespan-to" required type="datetime-local" name="date_to" class="timespan-to" /></label>
+                        <button type="submit" id="rrdeditor-submit" class="toolbar-button"><span class="ui-icon ui-icon-check" aria-hidden="true"></span>Apply</button>
+                    </form>
                 </div>
             </div>
         </div>
