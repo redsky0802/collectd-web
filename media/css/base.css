@@ -230,6 +230,22 @@ span.ui-icon {
     padding-left: 10px;
 }
 
+.graph-heading {
+    margin: 0 0 12px;
+    padding: 6px 12px;
+    border-left: 4px solid #f6a828;
+    background: #f7f7f7;
+    color: #262626;
+    font-size: 1.5rem;
+    font-weight: 400;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.graph-heading .graph-separator {
+    color: #707070;
+}
+
 #graph-container .graph-imgs-container,
 #graph-container .sortable {
     margin: 0;
@@ -268,6 +284,15 @@ span.ui-icon {
 }
 
 @media (prefers-color-scheme: dark) {
+    .graph-heading {
+        background: #404040;
+        color: #f0f0f0;
+    }
+
+    .graph-heading .graph-separator {
+        color: #bdbdbd;
+    }
+
     #graph-container .sortable > li.gc {
         border-color: #555;
     }
@@ -384,7 +409,7 @@ li.gc:hover .gc-menu {
     display: none;
 }
 
-.ttip-content, .graph-main-container {
+.ttip-content {
     display:none;
 }
 

@@ -93,7 +93,7 @@ for my $columns ('0', '19', '201', '40.5', '-20', '1e2', '') {
 }
 query(title_columns => 20);
 my ($title, $notes) = GraphFontTest::graph_title_layout(
-    GraphFontTest::graph_display_title('host', 'disk', 'serial_' x 40, 'disk_time', undef));
+    GraphFontTest::graph_display_title('disk', 'serial_' x 40, 'disk_time', undef));
 is(scalar(split /\n/, $title), 3, 'custom wrap keeps RRDtool title-line safeguard');
 ok(@$notes > 1, 'complete long title remains in notes');
 

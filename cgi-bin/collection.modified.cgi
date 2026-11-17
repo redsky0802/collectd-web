@@ -944,7 +944,7 @@ sub list_fonts_json {
 
 # Display text only: never use this result to construct an RRD filename.
 sub graph_display_title {
-    my ($host, $plugin, $plugin_instance, $type, $type_instance) = @_;
+    my ($plugin, $plugin_instance, $type, $type_instance) = @_;
     my $object = $plugin;
     $object .= "[$plugin_instance]"
       if ( defined($plugin_instance) && length($plugin_instance) );
@@ -956,7 +956,7 @@ sub graph_display_title {
     my $detail = $object;
     $detail .= " / $metric" if ( $metric ne $plugin );
 
-    return join("\n", graph_title_lines($host), graph_title_lines($detail));
+    return join("\n", graph_title_lines($detail));
 }
 
 # Default to 80 columns for the 1040-pixel canvas and 14-point monospace title.
@@ -1060,7 +1060,7 @@ sub action_show_graph {
         @rrd_args = @{ $GraphDefs->{$type} };
     }
     my ($display_title, $title_notes) = graph_title_layout(graph_display_title(
-        $host, $plugin, $plugin_instance, $type, $type_instance));
+        $plugin, $plugin_instance, $type, $type_instance));
     $title =
         "$host/$plugin"
       . ( defined($plugin_instance) ? "-$plugin_instance" : '' )
@@ -4563,7 +4563,7 @@ sub meta_graph_cpu {
     my $type_instances  = shift;
     my $opts            = {};
     $opts->{'display_title'} = graph_display_title(
-        $host, $plugin, $plugin_instance, $type, undef);
+        $plugin, $plugin_instance, $type, undef);
     my $sources         = [];
     $opts->{'title'} =
         "$host/$plugin"
@@ -4617,7 +4617,7 @@ sub meta_graph_df_complex {
     my $type_instances  = shift;
     my $opts            = {};
     $opts->{'display_title'} = graph_display_title(
-        $host, $plugin, $plugin_instance, $type, undef);
+        $plugin, $plugin_instance, $type, undef);
     my $sources         = [];
     $opts->{'title'} =
         "$host/$plugin"
@@ -4671,7 +4671,7 @@ sub meta_graph_dns
 
   my $opts = {};
   $opts->{'display_title'} = graph_display_title(
-      $host, $plugin, $plugin_instance, $type, undef);
+      $plugin, $plugin_instance, $type, undef);
   my $sources = [];
 
   $opts->{'title'} = "$host/$plugin"
@@ -4722,7 +4722,7 @@ sub meta_graph_memory {
     my $type_instances  = shift;
     my $opts            = {};
     $opts->{'display_title'} = graph_display_title(
-        $host, $plugin, $plugin_instance, $type, undef);
+        $plugin, $plugin_instance, $type, undef);
     my $sources         = [];
     $opts->{'title'} =
         "$host/$plugin"
@@ -4770,7 +4770,7 @@ sub meta_graph_if_rx_errors {
     my $type_instances  = shift;
     my $opts            = {};
     $opts->{'display_title'} = graph_display_title(
-        $host, $plugin, $plugin_instance, $type, undef);
+        $plugin, $plugin_instance, $type, undef);
     my $sources         = [];
     $opts->{'title'} =
         "$host/$plugin"
@@ -4811,7 +4811,7 @@ sub meta_graph_mysql_commands {
     my $type_instances  = shift;
     my $opts            = {};
     $opts->{'display_title'} = graph_display_title(
-        $host, $plugin, $plugin_instance, $type, undef);
+        $plugin, $plugin_instance, $type, undef);
     my $sources         = [];
     $opts->{'title'} =
         "$host/$plugin"
@@ -4851,7 +4851,7 @@ sub meta_graph_nfs_procedure {
     my $type_instances  = shift;
     my $opts            = {};
     $opts->{'display_title'} = graph_display_title(
-        $host, $plugin, $plugin_instance, $type, undef);
+        $plugin, $plugin_instance, $type, undef);
     my $sources         = [];
     $opts->{'title'} =
         "$host/$plugin"
@@ -4891,7 +4891,7 @@ sub meta_graph_pkg {
     my $type_instances  = shift;
     my $opts            = {};
     $opts->{'display_title'} = graph_display_title(
-        $host, $plugin, $plugin_instance, $type, undef);
+        $plugin, $plugin_instance, $type, undef);
     my $sources         = [];
     $opts->{'title'} =
         "$host/$plugin"
@@ -4941,7 +4941,7 @@ sub meta_graph_ps_state {
     my $type_instances  = shift;
     my $opts            = {};
     $opts->{'display_title'} = graph_display_title(
-        $host, $plugin, $plugin_instance, $type, undef);
+        $plugin, $plugin_instance, $type, undef);
     my $sources         = [];
     $opts->{'title'} =
         "$host/$plugin"
@@ -4991,7 +4991,7 @@ sub meta_graph_swap {
     my $type_instances  = shift;
     my $opts            = {};
     $opts->{'display_title'} = graph_display_title(
-        $host, $plugin, $plugin_instance, $type, undef);
+        $plugin, $plugin_instance, $type, undef);
     my $sources         = [];
     $opts->{'title'} =
         "$host/$plugin"
@@ -5039,7 +5039,7 @@ sub meta_graph_tcp_connections {
     my $type_instances  = shift;
     my $opts            = {};
     $opts->{'display_title'} = graph_display_title(
-        $host, $plugin, $plugin_instance, $type, undef);
+        $plugin, $plugin_instance, $type, undef);
     my $sources         = [];
     $opts->{'title'} =
         "$host/$plugin"
@@ -5103,7 +5103,7 @@ sub meta_graph_vmpage_number
 
     my $opts = {};
     $opts->{'display_title'} = graph_display_title(
-        $host, $plugin, $plugin_instance, $type, undef);
+        $plugin, $plugin_instance, $type, undef);
     my $sources = [];
 
     $opts->{'title'} = "$host/$plugin"
@@ -5166,7 +5166,7 @@ sub meta_graph_vmpage_action
 
     my $opts = {};
     $opts->{'display_title'} = graph_display_title(
-        $host, $plugin, $plugin_instance, $type, undef);
+        $plugin, $plugin_instance, $type, undef);
     my $sources = [];
 
     $opts->{'title'} = "$host/$plugin"

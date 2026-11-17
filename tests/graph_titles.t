@@ -37,8 +37,8 @@ my @cases = (
 );
 for my $case (@cases) {
     my ($plugin, $pinst, $type, $tinst, $expected) = @$case;
-    is(GraphTitleTest::graph_display_title($host, $plugin, $pinst, $type, $tinst),
-        "$host\n$expected", $expected);
+    is(GraphTitleTest::graph_display_title($plugin, $pinst, $type, $tinst),
+        $expected, $expected);
 }
 
 for my $text ('X' x 240, 'nvme_INTEL_' . ('serial_' x 25) . 'ns1',
@@ -50,15 +50,18 @@ for my $text ('X' x 240, 'nvme_INTEL_' . ('serial_' x 25) . 'ns1',
 }
 
 my $long_title = GraphTitleTest::graph_display_title(
-    $host, 'disk', 'nvme_' . ('serial_' x 30), 'disk_io_time', undef);
+    'disk', 'nvme_' . ('serial_' x 50), 'disk_io_time', undef);
 my ($render_title, $notes) = GraphTitleTest::graph_title_layout($long_title);
 is(scalar(split(/\n/, $render_title)), 3, 'RRDtool title never exceeds three lines');
 like($render_title, qr/\[\.\.\.\]/, 'omission is explicit');
 like($render_title, qr/disk_io_time\z/, 'metric remains visible');
 is_deeply($notes, ['COMMENT:Full title\\l', map { "COMMENT:$_\\l" } split(/\n/, $long_title)],
     'full identity is retained below the legend in every export format');
-my ($short_title, $no_notes) = GraphTitleTest::graph_title_layout("$host\ncpu[0]");
-is_deeply($no_notes, [], 'short titles need no repeated identity');
+my $three_lines = GraphTitleTest::graph_display_title('disk', 'X' x 160, 'disk_time', undef);
+is(scalar(split(/\n/, $three_lines)), 3, 'device and metric can use all three title lines');
+my ($full_title, $no_notes) = GraphTitleTest::graph_title_layout($three_lines);
+is($full_title, $three_lines, 'three detail lines fit without abbreviation');
+is_deeply($no_notes, [], 'a title that fits needs no notes');
 
 my $temp = tempdir(CLEANUP => 1);
 my $cwd = getcwd();
@@ -130,7 +133,7 @@ my @commands;
                 is(scalar @commands, 1, "$theme/$fixed: $detail renders once");
                 my @cmd = @{$commands[0]};
                 my ($title) = map { $cmd[$_ + 1] } grep { $cmd[$_] eq '-t' } 0..$#cmd;
-                is($title, "$host\n$detail", 'ordinary and stacked titles agree');
+                is($title, $detail, 'ordinary and stacked titles agree');
                 ok(grep($_ eq 'TITLE:14:Monospace', @cmd), 'consistent title font');
                 my ($format) = map { $cmd[$_ + 1] } grep { $cmd[$_] eq '-a' } 0..$#cmd;
                 is($format, 'SVG', 'SVG output is retained');

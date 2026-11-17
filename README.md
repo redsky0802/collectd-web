@@ -51,6 +51,10 @@ That guide covers:
 
 The standalone server default is `http://127.0.0.1:8888/`.
 
+The graph group heading shows the selected host and plugin. Individual graph
+titles show the plugin, metric and applicable instances. Exports use the same
+titles. To identify the host in a shared image, include it in the filename or caption.
+
 ### Graph ordering
 
 Host and plugin lists, and graph lists grouped by plugin instance, type and

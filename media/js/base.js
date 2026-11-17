@@ -346,11 +346,6 @@ function update_all_graphs(start, end) {
     });
 }
 
-function get_graph_main_container(host) {
-    $('.graph-main-container .hostname').html(host);
-    return $('.graph-main-container').html();
-}
-
 function show_lazy_graph(elem) {
     $(elem).attr('src', $(elem).attr('title'));
 }
@@ -405,28 +400,39 @@ function lazy_check() {
  *            url
  */
 var load_url = function () {
-    var url = $(this).attr('href');
-    var place = '#plugins';
+    var host = $selected_host;
     if (get_container(this) == 'hosts-container') {
         $('#hosts a').each(function () {
             $(this).removeClass('selected');
         });
-        $selected_host = $(this).html();
-        $.getJSON('cgi-bin/collection.modified.cgi?action=pluginlist_json&host=' + $selected_host, function (data) {
-            $("#plugins").html('');
-            $("#plugins").append(create_plugin_menu($selected_host, data));
+        host = $(this).text();
+        $selected_host = host;
+        $selected_plugin = '';
+        $('#plugins').empty();
+        $.getJSON('cgi-bin/collection.modified.cgi?action=pluginlist_json&host=' + encodeURIComponent(host), function (data) {
+            if (host !== $selected_host) {
+                return;
+            }
+            $("#plugins").html(create_plugin_menu(host, data));
 
             $('#plugins ul li a').click(function () {
                 $('#plugins').data('selected_plugin', $(this).attr('rel'));
             });
         });
     } else {
-        $selected_plugin = $(this).html();
-        $(".graph-imgs-container").html('');
-        $.getJSON('cgi-bin/collection.modified.cgi?action=graphs_json;plugin=' + $selected_plugin + ';host=' + $selected_host, function (data) {
+        var plugin = $(this).text();
+        $selected_plugin = plugin;
+        $.getJSON('cgi-bin/collection.modified.cgi?action=graphs_json;plugin=' + encodeURIComponent(plugin) + ';host=' + encodeURIComponent(host), function (data) {
+            if (host !== $selected_host || plugin !== $selected_plugin) {
+                return;
+            }
             $graph_json = data;
+            var heading = $('#graph-container .graph-heading');
+            heading.find('.graph-host').text(host);
+            heading.find('.graph-plugin').text(plugin);
+            heading.removeAttr('hidden');
+            $('#graph-container .graph-imgs-container').empty();
             create_graph_list("day", data.day);
-            $('#graph-container').html(get_graph_main_container($selected_host));
 
             lazy_check();
         });
