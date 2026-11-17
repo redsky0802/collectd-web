@@ -51,6 +51,19 @@ That guide covers:
 
 The standalone server default is `http://127.0.0.1:8888/`.
 
+### Graph ordering
+
+Host and plugin lists, and graph lists grouped by plugin instance, type and
+type instance, use natural ordering. For example, CPU 2 precedes CPU 10,
+enp2s2 precedes enp2s10, and nvme0n2 precedes nvme0n10. This applies to both
+the JSON interface and the legacy HTML listings.
+
+ASCII digit runs are compared by value without integer conversion. Other
+characters retain their case-sensitive text ordering. If the natural
+comparison is equal, the original names break the tie, including leading
+zeros. Device names and RRD paths are preserved. This changes the initial
+browse order; the state and legend order within each graph stays the same.
+
 ### Graph fonts
 
 Open **Menu > Fonts** to choose the server font family and point size for

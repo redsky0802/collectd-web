@@ -372,7 +372,7 @@ sub _files_plugin_inst_count {
 sub list_hosts_json {
     my @hosts    = _find_hosts();
     my $host_ref = \@hosts;
-    @hosts = sort (@hosts);
+    @hosts = _natural_sort(@hosts);
 
     # Enable autoflush
     $| = 1;
@@ -444,6 +444,39 @@ sub _rrd_vname {
     return $name;
 }
 
+# Compare browse labels without converting digit runs to machine numbers.
+# Text keeps its existing case-sensitive ordering. Defer the original-name
+# tie-break until all runs match, so leading zeros cannot reorder later runs.
+sub _natural_cmp {
+    my ($left, $right) = @_;
+    my ($lpos, $rpos) = (0, 0);
+    while ($lpos < length($left) && $rpos < length($right)) {
+        my $lchar = substr($left, $lpos, 1);
+        my $rchar = substr($right, $rpos, 1);
+        if ($lchar =~ /[0-9]/ && $rchar =~ /[0-9]/) {
+            my ($lnum) = substr($left, $lpos) =~ /^([0-9]+)/;
+            my ($rnum) = substr($right, $rpos) =~ /^([0-9]+)/;
+            $lpos += length($lnum);
+            $rpos += length($rnum);
+            $lnum =~ s/^0+//;
+            $rnum =~ s/^0+//;
+            my $order = length($lnum) <=> length($rnum) || $lnum cmp $rnum;
+            return $order if $order;
+        } else {
+            my $order = $lchar cmp $rchar;
+            return $order if $order;
+            $lpos++;
+            $rpos++;
+        }
+    }
+    return (length($left) - $lpos) <=> (length($right) - $rpos)
+      || $left cmp $right;
+}
+
+sub _natural_sort {
+    return sort { _natural_cmp($a, $b) } @_;
+}
+
 sub _custom_sort_arrayref {
     my $array_ref  = shift;
     my $array_sort = shift;
@@ -459,7 +492,7 @@ sub _custom_sort_arrayref {
 
 sub action_show_host {
     my @hosts = _get_param_host();
-    @hosts = sort (@hosts);
+    @hosts = _natural_sort(@hosts);
     my $timespan    = _get_param_timespan();
     my $all_plugins = _find_files_for_hosts(@hosts);
     my $url_prefix =
@@ -472,7 +505,7 @@ sub action_show_host {
 qq(<div class="ui-widget-header ui-corner-top"><h3>Available Plugins</h3></div>\n);
     print
 qq(<div id="plugin-container" class="ui-widget-content ui-corner-bottom  "><ul>\n);
-    for ( sort ( keys %$all_plugins ) ) {
+    for ( _natural_sort( keys %$all_plugins ) ) {
         my $plugin      = $_;
         my $plugin_html = encode_entities($plugin);
         my $url_plugin  = $url_prefix . ';plugin=' . uri_escape($plugin);
@@ -492,7 +525,7 @@ sub action_show_host_json
     print STDOUT header (-Content_Type => 'application/json',
     -Charset => 'utf-8'
     );
-    print STDOUT to_json ([sort (keys %$all_plugins)],
+    print STDOUT to_json ([_natural_sort(keys %$all_plugins)],
     { pretty => 1, indent => 2 }) . "\n";
     return (0);
 } # action_show_host_json
@@ -521,13 +554,13 @@ sub action_show_plugin {
     for (@hosts) {
         print "\t<h2>", encode_entities($_), "</h2>\n";
     }
-    for ( sort ( keys %$selected_plugins ) ) {
+    for ( _natural_sort( keys %$selected_plugins ) ) {
         my $plugin      = $_;
         my $plugin_html = encode_entities($plugin);
         my $plugin_url  = "$url_prefix;plugin=" . uri_escape($plugin);
         my $all_pinst   = $all_plugins->{$plugin};
         print qq(<ul class="sortable">);
-        for ( sort ( keys %$all_pinst ) ) {
+        for ( _natural_sort( keys %$all_pinst ) ) {
             my $pinst      = $_;
             my $pinst_html = '';
             my $pinst_url  = $plugin_url;
@@ -541,7 +574,7 @@ sub action_show_plugin {
                 next;
             }
             my $rowspan = ( $files_num == 1 ) ? '' : qq( rowspan="$files_num");
-            for ( sort ( keys %{ $all_plugins->{$plugin}{$pinst} } ) ) {
+            for ( _natural_sort( keys %{ $all_plugins->{$plugin}{$pinst} } ) ) {
                 my $type      = $_;
                 my $type_html = encode_entities($type);
                 my $type_url  = "$pinst_url;type=" . uri_escape($type);
@@ -598,7 +631,7 @@ sub action_show_plugin {
                     next;    # pinst
                 }    # if (exists ($MetaGraphDefs->{$type}))
                 for (
-                    sort ( keys %{ $all_plugins->{$plugin}{$pinst}{$type} } ) )
+                    _natural_sort( keys %{ $all_plugins->{$plugin}{$pinst}{$type} } ) )
                 {
                     my $tinst     = $_;
                     my $graph_url =
@@ -678,13 +711,13 @@ sub action_show_plugin_json {
     }
     # TODO: send list of hosts
 
-    for ( sort ( keys %$selected_plugins ) ) {
+    for ( _natural_sort( keys %$selected_plugins ) ) {
         my $plugin      = $_;
         my $plugin_html = encode_entities($plugin);
         my $plugin_url  = "$url_prefix;plugin=" . uri_escape($plugin);
         my $all_pinst   = $all_plugins->{$plugin};
 
-        for ( sort ( keys %$all_pinst ) ) {
+        for ( _natural_sort( keys %$all_pinst ) ) {
             my $pinst      = $_;
             my $pinst_html = '';
             my $pinst_url  = $plugin_url;
@@ -698,7 +731,7 @@ sub action_show_plugin_json {
                 next;
             }
             my $rowspan = ( $files_num == 1 ) ? '' : qq( rowspan="$files_num");
-            for ( sort ( keys %{ $all_plugins->{$plugin}{$pinst} } ) ) {
+            for ( _natural_sort( keys %{ $all_plugins->{$plugin}{$pinst} } ) ) {
                 my $type      = $_;
                 my $type_html = encode_entities($type);
                 my $type_url  = "$pinst_url;type=" . uri_escape($type);
@@ -735,7 +768,7 @@ sub action_show_plugin_json {
                     $files_printed++;
                     next;    # pinst
                 }    # if (exists ($MetaGraphDefs->{$type}))
-                for ( sort ( keys %{ $all_plugins->{$plugin}{$pinst}{$type} } ) )
+                for ( _natural_sort( keys %{ $all_plugins->{$plugin}{$pinst}{$type} } ) )
                 {
                     my $tinst     = $_;
                     my $graph_url =
