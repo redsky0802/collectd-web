@@ -148,6 +148,9 @@ function build_url(original_url, new_params) {
     if (params.plugin === 'cpu' && params.type === 'cpu') {
         params.cpu_idle = cpu_idle_visible ? '1' : '0';
     }
+    if (params.action === 'show_graph') {
+        graph_font_url_params(params);
+    }
     var url = original_url.split('?')[0] + '?';
     for (key in params) {
         if (params[key] !== '' || params[key] === 0) {
@@ -334,11 +337,12 @@ function get_graph_menu() {
 function update_all_graphs(start, end) {
     $('.gc-img').each(function () {
         var $this = $(this),
-            new_url = build_url_with_theme($this.attr('src'), {
+            attribute = $this.hasClass('toload') ? 'title' : 'src',
+            new_url = build_url_with_theme($this.attr(attribute), {
             'start': print_date(start),
             'end': print_date(end)
         });
-        $this.attr('src', new_url);
+        $this.attr(attribute, new_url);
     });
 }
 
@@ -445,6 +449,7 @@ $(document).ready(function () {
 
     restore_graph_view();
     restore_cpu_idle_visibility();
+    initialize_graph_fonts();
     $('#show-cpu-idle-checkbox').change(function () {
         set_cpu_idle_visibility(this.checked);
     });

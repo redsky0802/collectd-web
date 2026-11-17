@@ -19,6 +19,7 @@
         <script type="text/javascript" src="media/js/jquery.jclock.js"></script>
         <script type="text/javascript" src="media/js/external/date.js"></script>
         <script type="text/javascript" src="media/js/jquery.validate.pack.js"></script>
+        <script type="text/javascript" src="media/js/fonts.js"></script>
         <script type="text/javascript" src="media/js/base.js"></script>
         <script type="text/javascript" src="media/js/graph-menu.js"></script>
     </head>
@@ -33,6 +34,7 @@
                           <li><a href="#graphdefs-tab">Graph Definitions</a> </li>
                           <li><a href="#tab2">Clocks</a> </li>
                           <li><a href="#options-tab">Options</a> </li>
+                          <li><a href="#fonts-tab">Fonts</a> </li>
                           <li><a href="#about-tab">About</a> </li>
                       </ul>
                       <div id="graphdefs-tab">
@@ -114,6 +116,38 @@
                                   </div>
                               </div>
                           </div>
+                      </div>
+                      <div id="fonts-tab">
+                          <form id="font-settings-form" action="#">
+                              <p>Graph fonts are rendered on the server. These settings apply to all graphs in this browser.</p>
+                              <div class="font-table-scroll">
+                                  <table class="font-settings-table">
+                                      <thead><tr><th scope="col">Element</th><th scope="col">Server font</th><th scope="col">Size (pt)</th><th scope="col">Original size</th></tr></thead>
+                                      <tbody id="font-settings-rows"></tbody>
+                                  </table>
+                              </div>
+                              <p class="font-settings-help">Size 0 keeps the current size. Set DEFAULT above 0 to change all sizes; individual sizes above 0 override it.</p>
+                              <div class="font-settings-options">
+                                  <label for="font-render-mode">Rendering
+                                      <select id="font-render-mode">
+                                          <option value="normal">Normal — full hinting, antialiasing</option>
+                                          <option value="light">Light — slight hinting, antialiasing</option>
+                                          <option value="mono">Mono — full hinting, no antialiasing</option>
+                                      </select>
+                                  </label>
+                                  <label for="title-columns">Title wrap width
+                                      <input id="title-columns" type="number" min="20" max="200" step="1" value="80" /> columns
+                                  </label>
+                              </div>
+                              <p class="font-settings-help">Wrapping is approximate: ASCII uses one column, other graphemes use two. Adjust it when changing the title font or size.</p>
+                              <div class="font-settings-actions">
+                                  <button type="submit">Apply</button>
+                                  <button type="button" id="reset-graph-fonts">Restore defaults</button>
+                                  <button type="button" id="refresh-server-fonts">Refresh server fonts</button>
+                              </div>
+                              <p id="font-settings-status" role="status" aria-live="polite"></p>
+                              <p id="font-catalog-status" role="status" aria-live="polite"></p>
+                          </form>
                       </div>
                       <div id="about-tab">
                           <div class="container">

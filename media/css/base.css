@@ -1,5 +1,50 @@
 :root { overflow-y: scroll; }
 
+.font-table-scroll {
+    overflow-x: auto;
+}
+.font-settings-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.font-settings-table th, .font-settings-table td {
+    padding: 5px 8px;
+    text-align: left;
+    vertical-align: middle;
+}
+.font-settings-table th[scope="row"] {
+    font-weight: normal;
+}
+.font-settings-table select {
+    width: 100%;
+    min-width: 160px;
+    max-width: 360px;
+}
+#fonts-tab input[type="number"] {
+    width: 6em;
+    padding: 4px;
+}
+.font-settings-options, .font-settings-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 18px;
+}
+.font-settings-options label {
+    margin: 0;
+    min-width: 0;
+}
+#font-render-mode {
+    max-width: 100%;
+}
+.font-settings-help, #font-catalog-status {
+    font-size: 0.9em;
+    margin: 8px 0;
+}
+#font-settings-status {
+    margin: 8px 0;
+}
+
 @media (prefers-color-scheme: dark) {
   body {
     background-color: #333;

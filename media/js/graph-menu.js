@@ -76,8 +76,9 @@ function build_move_graph_url(url, direction) {
 function move_graph(menu_element, direction) {
     var gc_img = $(menu_element).closest('li.gc').find('.gc-img');
 
-    var url = $(gc_img).attr('src');
-    if (url != null) $(gc_img).attr('src', build_move_graph_url(url, direction));
+    var attribute = gc_img.hasClass('toload') ? 'title' : 'src';
+    var url = gc_img.attr(attribute);
+    if (url != null) gc_img.attr(attribute, build_move_graph_url(url, direction));
 }
 
 function build_zoom_graph_url(url, direction) {
@@ -105,8 +106,9 @@ function build_zoom_graph_url(url, direction) {
 function zoom_graph(menu_element, direction) {
     var gc_img = $(menu_element).closest('li.gc').find('.gc-img');
 
-    var url = $(gc_img).attr('src');
-    if (url != null) $(gc_img).attr('src', build_zoom_graph_url(url, direction));
+    var attribute = gc_img.hasClass('toload') ? 'title' : 'src';
+    var url = gc_img.attr(attribute);
+    if (url != null) gc_img.attr(attribute, build_zoom_graph_url(url, direction));
 }
 
 function move_selected_graphs (direction) {

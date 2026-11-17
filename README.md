@@ -51,6 +51,39 @@ That guide covers:
 
 The standalone server default is `http://127.0.0.1:8888/`.
 
+### Graph fonts
+
+Open **Menu > Fonts** to choose the server font family and point size for
+DEFAULT, TITLE, AXIS, UNIT, LEGEND and WATERMARK. DEFAULT supplies the common
+family; individual elements can inherit it or select another family.
+Size **0** preserves the existing size. A positive DEFAULT size changes all
+sizes, followed by any positive per-element overrides. Sizes accept up to two
+decimal places, from 0 to 72 points.
+
+Rendering modes are Normal (full hinting with antialiasing), Light (slight
+hinting with antialiasing), and Mono (full hinting without antialiasing).
+Defaults are monospace, Normal, and the existing individual sizes. The
+server's Fontconfig configuration resolves monospace.
+
+**Title wrap width** defaults to 80 columns and accepts integers from 20 to 200.
+This is an approximate character budget, not pixel measurement: ASCII uses
+one column and other graphemes use two. Adjust it for the chosen title font
+and size. Long identities remain available below the legend when the title
+would exceed RRDtool's supported number of lines.
+
+**Apply** saves preferences in this browser and refreshes existing graphs.
+Deferred graphs receive the new settings when loaded. Settings also apply to
+new graphs, time-range changes, pan/zoom and exports. **Restore defaults**
+applies and saves the defaults immediately. If browser storage is unavailable,
+settings still work for the current page.
+
+The server list is read on first opening the panel, or with **Refresh server
+fonts**, using Fontconfig's optional fc-list command. It lists families
+visible to the CGI account, so they may differ from an administrator's desktop
+fonts. If listing fails, monospace and saved choices remain usable. Removed
+or unavailable families fall back through the server's font system. No font
+files, web fonts, new Perl modules or frontend libraries are required.
+
 ## 🔗 Links
 
 - **Project Homepage:** [Collectd-web on GitHub](http://github.com/httpdss/collectd-web)

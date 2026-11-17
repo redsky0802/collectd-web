@@ -79,6 +79,7 @@ our $OutputFormat = '';
 our $ContentType = 'image/png';
 
 load_graph_definitions();
+apply_graph_font_options();
 
 for (qw(action host plugin plugin_instance type type_instance timespan output enable-caching start end)) {
     $Args->{$_} = param($_);
@@ -129,7 +130,7 @@ sub read_config {
 }    # read_config
 
 sub validate_args {
-    if ($Args->{'action'} && ( $Args->{'action'} =~ m/^(overview|show_host|show_plugin|show_type|show_graph|hostlist_json|pluginlist_json|graphs_json)$/ ))
+    if ($Args->{'action'} && ( $Args->{'action'} =~ m/^(overview|show_host|show_plugin|show_type|show_graph|hostlist_json|pluginlist_json|graphs_json|fonts_json)$/ ))
     {
         $Args->{'action'} = $1;
     }
@@ -823,6 +824,91 @@ sub action_show_type {
     }
 }    # action_show_type
 
+# Font names are families, not paths or arbitrary Fontconfig expressions.
+sub graph_font_family {
+    my $name = shift;
+    return '' unless defined($name);
+    if (!utf8::is_utf8($name)) {
+        $name = eval { decode('UTF-8', $name, FB_CROAK | LEAVE_SRC) };
+        return '' unless defined($name);
+    }
+    $name =~ s/^\s+|\s+$//g;
+    return '' if !length($name) || length($name) > 128
+      || $name =~ /[\x00-\x1f\x7f:;,\/\\]/;
+    return $name;
+}
+
+sub graph_font_size {
+    my $size = shift;
+    return 0 unless defined($size) && $size =~ /\A[0-9]{1,2}(?:\.[0-9]{1,2})?\z/
+      && $size <= 72;
+    return 0 + $size;
+}
+
+sub graph_title_columns {
+    my $columns = param('title_columns');
+    return 80 unless defined($columns) && $columns =~ /\A[0-9]{2,3}\z/
+      && $columns >= 20 && $columns <= 200;
+    return 0 + $columns;
+}
+
+sub apply_graph_font_options {
+    # Apply after the theme defaults. DEFAULT:0 changes the family while
+    # preserving each element's existing size; per-element overrides follow.
+    for my $tag (qw(DEFAULT TITLE AXIS UNIT LEGEND WATERMARK)) {
+        my $key = 'font_' . lc($tag);
+        my $family = graph_font_family(scalar param($key));
+        my $size = graph_font_size(scalar param($key . '_size'));
+        $family ||= 'monospace' if $tag eq 'DEFAULT';
+        next unless length($family) || $size;
+        # A trailing comma makes Pango treat the whole name as a family,
+        # including names ending in a number or a word such as "Bold".
+        $family .= ',' if length($family);
+        push @RRDDefaultArgs, '--font', "$tag:$size:$family";
+    }
+    my $mode = param('font_render_mode');
+    if (defined($mode) && $mode =~ /\A(?:normal|light|mono)\z/) {
+        push @RRDDefaultArgs, '--font-render-mode', $mode;
+    }
+}
+
+sub server_font_families {
+    my %families = (monospace => 1);
+    my ($fh, $pid);
+    my $available = eval {
+        local $SIG{ALRM} = sub { die "Font listing timed out\n"; };
+        alarm 5;
+        # List-form open: no shell, user-supplied command or font path.
+        $pid = open($fh, '-|', 'fc-list', '--format', '%{family[0]}\n');
+        die "Cannot run fc-list\n" unless $pid;
+        while (my $line = <$fh>) {
+            chomp $line;
+            my $family = graph_font_family($line);
+            $families{$family} = 1 if length($family);
+        }
+        close($fh) or die "fc-list failed\n";
+        alarm 0;
+        1;
+    };
+    alarm 0;
+    if (!$available) {
+        if (defined($fh) && defined(fileno($fh))) {
+            kill 'TERM', $pid if $pid;
+            close($fh);
+        }
+        %families = (monospace => 1);
+    }
+    return { fonts => [ 'monospace', sort grep { $_ ne 'monospace' } keys %families ],
+             available => $available ? JSON::true : JSON::false };
+}
+
+sub list_fonts_json {
+    print STDOUT header(-Content_Type => 'application/json',
+                        -Charset => 'utf-8', -Cache_Control => 'no-store');
+    print STDOUT to_json(server_font_families(), {utf8 => 1});
+    return 0;
+}
+
 # Display text only: never use this result to construct an RRD filename.
 sub graph_display_title {
     my ($host, $plugin, $plugin_instance, $type, $type_instance) = @_;
@@ -840,11 +926,13 @@ sub graph_display_title {
     return join("\n", graph_title_lines($host), graph_title_lines($detail));
 }
 
-# With the 1040-pixel canvas and 14-point monospace title, 80 columns leave
-# room for font substitution. Keep all characters, including serial numbers;
+# Default to 80 columns for the 1040-pixel canvas and 14-point monospace title.
+# The user can adjust this approximate budget for another font or size.
+# Keep all characters, including serial numbers;
 # prefer breaks after separators and split long unbroken identifiers as needed.
 sub graph_title_lines {
     my $text = shift;
+    my $limit = graph_title_columns();
     if ( !utf8::is_utf8($text) ) {
         my $decoded = eval { decode('UTF-8', $text, FB_CROAK | LEAVE_SRC) };
         $text = $decoded if defined($decoded);
@@ -856,10 +944,10 @@ sub graph_title_lines {
         for my $char (@chars) {
             # Conservatively allow two columns for non-ASCII graphemes.
             my $width = $char =~ /[^\x00-\x7f]/ ? 2 : 1;
-            last if $columns + $width > 80;
+            last if $columns + $width > $limit;
             $columns += $width;
             $count++;
-            $break = $count if $char =~ /[\s\/_.-]/ && $columns >= 40;
+            $break = $count if $char =~ /[\s\/_.-]/ && $columns >= $limit / 2;
         }
         $count = $break if $count < @chars && $break;
         push @lines, join('', splice(@chars, 0, $count));
@@ -1013,8 +1101,11 @@ sub _get_format_param {
 }
 
 sub main {
-    read_config();
     validate_args();
+    if ( $Args->{'action'} eq 'fonts_json' ) {
+        return list_fonts_json();
+    }
+    read_config();
     _get_format_param();
 
     if ( defined( $Args->{'action'} )
